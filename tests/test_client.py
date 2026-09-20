@@ -19,17 +19,26 @@ CREDENTIALS = {
 }
 
 
+REASONS = {200: "OK", 400: "Bad Request", 403: "Forbidden", 429: "Too Many Requests"}
+
+
 class FakeResponse:
-    def __init__(self, payload=None, status_code=200):
+    def __init__(self, payload=None, status_code=200, text=""):
         self._payload = payload or {}
         self.status_code = status_code
+        self.text = text
+        self.url = "https://api.ercot.com/api/public-reports/endpoint"
+
+    @property
+    def ok(self):
+        return self.status_code < 400
+
+    @property
+    def reason(self):
+        return REASONS.get(self.status_code, "Error")
 
     def json(self):
         return self._payload
-
-    def raise_for_status(self):
-        if self.status_code >= 400:
-            raise requests.HTTPError(f"status {self.status_code}")
 
 
 def page(rows, total_pages):
@@ -141,3 +150,23 @@ def test_page_size_is_requested_explicitly():
     params = session.requests[0]["params"]
     assert params["size"] == client_module.PAGE_SIZE
     assert params["settlementPoint"] == "HB_HOUSTON"
+
+
+def test_a_refusal_carries_ercot_s_own_explanation():
+    """A bare "403 Forbidden" does not say whether the product is wrong, the
+    page size is over the limit or the quota is spent. ERCOT says which."""
+    body = '{"statusCode": 403, "message": "Page size exceeds the maximum."}'
+    session = FakeSession([FakeResponse(status_code=403, text=body)])
+    with pytest.raises(requests.HTTPError, match="Page size exceeds the maximum"):
+        ErcotClient(session=session).get("/np6-345-cd/act_sys_load_by_wzn", {})
+
+
+def test_a_refused_token_request_names_the_status():
+    session = FakeSession([])
+    session.post = lambda *a, **k: FakeResponse(status_code=400, text="invalid_grant")
+    with pytest.raises(requests.HTTPError, match="invalid_grant"):
+        ErcotClient(session=session).get("/endpoint", {})
+
+
+def test_the_requested_page_size_is_the_one_ercot_accepts():
+    assert client_module.PAGE_SIZE == 1000

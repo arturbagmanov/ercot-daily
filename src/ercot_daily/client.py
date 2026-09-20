@@ -20,7 +20,10 @@ TOKEN_URL = (
 CLIENT_ID = "fec253ea-0d06-4272-a5e6-b478baeecd70"
 BASE_URL = "https://api.ercot.com/api/public-reports"
 
-PAGE_SIZE = 5000
+# ERCOT refuses a larger page with 403 rather than clamping it. 1000 is the
+# value proven against this API in net-load-forecasting-ercot; a single
+# operating day is 96 rows at most, so it is never reached anyway.
+PAGE_SIZE = 1000
 PAUSE_SECONDS = 2.1  # stay under the public API's per-minute request limit
 TOKEN_LIFETIME = 50 * 60  # tokens last an hour; refresh early
 
@@ -30,6 +33,24 @@ def _env(name: str) -> str:
     if not value:
         raise RuntimeError(f"Environment variable {name} is not set.")
     return value
+
+
+def _check(response: requests.Response) -> None:
+    """Raise with ERCOT's own explanation attached.
+
+    A refused call carries a body saying why — wrong product, page size over
+    the limit, quota exhausted, credentials not recognised. Bare
+    raise_for_status() throws that away and leaves "403 Client Error:
+    Forbidden", which is the difference between a one-line fix and an
+    afternoon of guessing.
+    """
+    if response.ok:
+        return
+    detail = response.text.strip()[:500] or "(empty body)"
+    raise requests.HTTPError(
+        f"{response.status_code} {response.reason} for {response.url}\n{detail}",
+        response=response,
+    )
 
 
 class ErcotClient:
@@ -55,7 +76,7 @@ class ErcotClient:
                 },
                 timeout=30,
             )
-            response.raise_for_status()
+            _check(response)
             self._token = response.json()["id_token"]
             self._expires = time.monotonic() + TOKEN_LIFETIME
         return {
@@ -77,7 +98,7 @@ class ErcotClient:
                 retries += 1
                 time.sleep(15)
                 continue
-            response.raise_for_status()
+            _check(response)
             body = response.json()
             fields = [f["name"] for f in body["fields"]]
             frames.append(pd.DataFrame(body.get("data", []), columns=fields))
