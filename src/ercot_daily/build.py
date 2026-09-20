@@ -21,6 +21,22 @@ COLUMNS = [
     "rtm_price",
 ]
 
+# Decimals each derived column is entitled to. demand, wind and solar arrive
+# with two, so their difference claims no more; the real-time price is the mean
+# of four two-decimal prices, which is exact at four. Pinning this keeps the
+# written text identical across pandas builds, which is what stops git
+# reporting a changed row on a day whose numbers did not change.
+PRECISION = {"net_load_mw": 2, "rtm_price": 4}
+
+
+def round_derived(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    for column, places in PRECISION.items():
+        if column in out.columns:
+            out[column] = out[column].round(places)
+    return out
+
+
 # Evening ramp: net load at HE21 minus HE17.
 #
 # net-load-forecasting-ercot reports "demand peaks at hour 17, net load at
@@ -41,12 +57,9 @@ def assemble(day: date, load, wind, solar, dam, rtm) -> pd.DataFrame:
     missing = df.columns[df.isna().any()].tolist()
     if missing or not 23 <= len(df) <= 25:
         raise IncompleteDay(f"{day}: {len(df)} hours, gaps in {missing}")
-    # Rounded to the precision of its own inputs. Left unrounded the
-    # subtraction leaves tails like 48870.729999999996, which different pandas
-    # builds render differently, so git reports a changed row on a day whose
-    # numbers did not change.
-    df["net_load_mw"] = (df["demand_mw"] - df["wind_mw"] - df["solar_mw"]).round(2)
+    df["net_load_mw"] = df["demand_mw"] - df["wind_mw"] - df["solar_mw"]
     df["operating_day"] = str(day)
+    df = round_derived(df)
     return df.sort_values(["hour_ending", "dst"], ascending=[True, False])[COLUMNS]
 
 
@@ -58,7 +71,7 @@ def write_history(history: pd.DataFrame, path: Path) -> None:
     day to it, and the commit history stops being readable.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    history.to_csv(path, index=False, lineterminator="\n")
+    round_derived(history).to_csv(path, index=False, lineterminator="\n")
 
 
 def load_history(path: Path) -> pd.DataFrame:

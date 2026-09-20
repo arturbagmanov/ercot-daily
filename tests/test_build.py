@@ -141,3 +141,17 @@ def test_derived_columns_carry_no_floating_point_tail(client):
         assert repr(float(value)) == repr(round(float(value), 2))
     for value in day["rtm_price"]:
         assert repr(float(value)) == repr(round(float(value), 4))
+
+
+def test_writing_normalises_a_history_that_drifted(client, tmp_path):
+    """The writer guarantees the file's precision, not only the builder, so
+    rows written by an older version get cleaned up instead of persisting."""
+    day = assemble(client).reset_index(drop=True)
+    day.loc[0, "net_load_mw"] = 44428.78999999999
+    day.loc[0, "rtm_price"] = 34.442499999999995
+    path = tmp_path / "daily.csv"
+    build.write_history(day, path)
+    text = path.read_text()
+    assert "44428.79" in text and "34.4425" in text
+    assert "44428.78999999999" not in text
+    assert "34.442499999999995" not in text

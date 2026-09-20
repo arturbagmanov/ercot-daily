@@ -139,8 +139,4 @@ def fetch_rtm(client, day: date, hub: str = HUB) -> pd.DataFrame:
             "rtm_price": df[col(df, "settlementPointPrice")].astype(float),
         }
     )
-    hourly = tidy.groupby(KEY, as_index=False)["rtm_price"].mean()
-    # Four two-decimal prices averaged land on exactly four decimals, so this
-    # rounding loses nothing and pins the written text across pandas builds.
-    hourly["rtm_price"] = hourly["rtm_price"].round(4)
-    return hourly
+    return tidy.groupby(KEY, as_index=False)["rtm_price"].mean()
