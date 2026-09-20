@@ -1,6 +1,6 @@
 # ercot-daily
 
-[![daily](https://github.com/arturbagmanov/ercot-daily/actions/workflows/daily.yml/badge.svg)](https://github.com/arturbagmanov/ercot-daily/actions/workflows/daily.yml)
+[![daily recap](https://github.com/arturbagmanov/ercot-daily/actions/workflows/daily.yml/badge.svg)](https://github.com/arturbagmanov/ercot-daily/actions/workflows/daily.yml)
 
 Yesterday in ERCOT, updated every morning: demand, net load (demand minus
 wind and solar), and the day-ahead versus real-time price at the Houston hub.

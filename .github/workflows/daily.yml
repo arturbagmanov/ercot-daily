@@ -1,4 +1,4 @@
-name: daily
+name: daily recap
 
 on:
   schedule:
