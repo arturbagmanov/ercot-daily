@@ -56,6 +56,7 @@ class FakeSession:
         self.responses = list(responses)
         self.tokens_issued = 0
         self.requests = []
+        self.headers = {}
 
     def post(self, url, data=None, timeout=None):
         self.tokens_issued += 1
@@ -170,3 +171,14 @@ def test_a_refused_token_request_names_the_status():
 
 def test_the_requested_page_size_is_the_one_ercot_accepts():
     assert client_module.PAGE_SIZE == 1000
+
+
+def test_the_client_identifies_itself():
+    """Courtesy to a public agency's API, and a name for ERCOT to recognise
+    if their bot protection ever has to be asked to let this client through.
+    It is not what gets past Imperva; nothing in the headers is."""
+    session = FakeSession([page([], 1)])
+    ErcotClient(session=session)
+    assert "ercot-daily" in session.headers["User-Agent"]
+    assert "python-requests" not in session.headers["User-Agent"]
+    assert session.headers["Accept"] == "application/json"

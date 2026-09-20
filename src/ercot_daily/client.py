@@ -25,6 +25,17 @@ BASE_URL = "https://api.ercot.com/api/public-reports"
 # operating day is 96 rows at most, so it is never reached anyway.
 PAGE_SIZE = 1000
 PAUSE_SECONDS = 2.1  # stay under the public API's per-minute request limit
+
+# api.ercot.com sits behind Imperva bot protection, which can answer with a
+# 403 and an HTML challenge page before the request reaches the API at all.
+# Measured 20 Sep 2026: the User-Agent is NOT what triggers it — a descriptive
+# one is refused exactly like the library default, on every endpoint. Sending
+# one anyway is the right manners for a public agency's API, and gives ERCOT
+# something to recognise if a block ever has to be lifted.
+USER_AGENT = (
+    "ercot-daily/0.1 (+https://github.com/arturbagmanov/ercot-daily; "
+    "daily public-report recap)"
+)
 TOKEN_LIFETIME = 50 * 60  # tokens last an hour; refresh early
 
 
@@ -59,6 +70,9 @@ class ErcotClient:
         self.password = _env("ERCOT_API_PASSWORD")
         self.subscription_key = _env("ERCOT_API_SUBSCRIPTION_KEY")
         self.session = session or requests.Session()
+        self.session.headers.update(
+            {"User-Agent": USER_AGENT, "Accept": "application/json"}
+        )
         self._token: str | None = None
         self._expires = 0.0
 
