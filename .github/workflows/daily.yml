@@ -1,0 +1,59 @@
+name: daily
+
+on:
+  schedule:
+    # 13:30 and 18:30 UTC: morning in Texas. The second run catches any
+    # report ERCOT had not posted yet at the first.
+    - cron: "30 13 * * *"
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Operating day to (re)build, YYYY-MM-DD. Blank = yesterday."
+        required: false
+
+permissions:
+  contents: write
+
+concurrency: daily
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install .
+
+      - name: Fetch and render
+        env:
+          ERCOT_API_USERNAME: ${{ secrets.ERCOT_API_USERNAME }}
+          ERCOT_API_PASSWORD: ${{ secrets.ERCOT_API_PASSWORD }}
+          ERCOT_API_SUBSCRIPTION_KEY: ${{ secrets.ERCOT_API_SUBSCRIPTION_KEY }}
+          # Via the environment, not interpolated into the script: a workflow
+          # input spliced into `run:` is a shell injection waiting to happen.
+          RUN_DATE: ${{ github.event.inputs.date }}
+        run: |
+          if [ -n "$RUN_DATE" ]; then
+            python -m ercot_daily.cli run --date "$RUN_DATE"
+          else
+            python -m ercot_daily.cli run
+          fi
+
+      - name: Commit as github-actions[bot]
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data reports README.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          day=$(tail -n 1 data/daily.csv | cut -d, -f1)
+          git commit -m "Recap for operating day ${day}"
+          git push
