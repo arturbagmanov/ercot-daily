@@ -1,0 +1,5 @@
+# One line ending everywhere. Without this, a file written on Windows and
+# the same file written on the Ubuntu runner differ on every line, and each
+# daily commit rewrites the whole history instead of adding a day to it.
+* text=auto eol=lf
+*.png binary

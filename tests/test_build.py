@@ -111,3 +111,33 @@ def test_a_history_that_stopped_updating_fails_the_run(client):
 def test_a_repository_with_no_history_is_stale(tmp_path):
     empty = build.load_history(tmp_path / "daily.csv")
     assert cli.stale(empty, date(2026, 8, 20)) is not None
+
+
+def test_history_is_written_with_one_line_ending(client, tmp_path):
+    """A Windows run and an Ubuntu run must produce identical bytes, or every
+    daily commit rewrites the whole file instead of adding a day to it."""
+    path = tmp_path / "data" / "daily.csv"
+    build.write_history(assemble(client), path)
+    assert b"\r\n" not in path.read_bytes()
+    assert path.read_bytes().endswith(b"\n")
+
+
+def test_recap_is_written_with_one_line_ending(client, tmp_path):
+    path = tmp_path / "README.md"
+    path.write_text(
+        f"intro\n{readme.START}\nold\n{readme.END}\noutro\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    readme.update(path, readme.recap(build.summarize(assemble(client)), "HB_HOUSTON"))
+    assert b"\r\n" not in path.read_bytes()
+
+
+def test_derived_columns_carry_no_floating_point_tail(client):
+    """48870.729999999996 and 48870.73 are the same double rendered two ways.
+    Different pandas builds pick differently, and git calls it a changed row."""
+    day = assemble(client)
+    for value in day["net_load_mw"]:
+        assert repr(float(value)) == repr(round(float(value), 2))
+    for value in day["rtm_price"]:
+        assert repr(float(value)) == repr(round(float(value), 4))

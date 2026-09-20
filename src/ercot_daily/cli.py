@@ -73,8 +73,7 @@ def run(days: list[date]) -> int:
         print(f"added {day}")
 
     if added:
-        HISTORY.parent.mkdir(parents=True, exist_ok=True)
-        history.to_csv(HISTORY, index=False)
+        build.write_history(history, HISTORY)
         latest = history["operating_day"].max()
         day_df = history[history["operating_day"] == latest]
         summary = build.summarize(day_df)

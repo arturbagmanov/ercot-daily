@@ -41,9 +41,24 @@ def assemble(day: date, load, wind, solar, dam, rtm) -> pd.DataFrame:
     missing = df.columns[df.isna().any()].tolist()
     if missing or not 23 <= len(df) <= 25:
         raise IncompleteDay(f"{day}: {len(df)} hours, gaps in {missing}")
-    df["net_load_mw"] = df["demand_mw"] - df["wind_mw"] - df["solar_mw"]
+    # Rounded to the precision of its own inputs. Left unrounded the
+    # subtraction leaves tails like 48870.729999999996, which different pandas
+    # builds render differently, so git reports a changed row on a day whose
+    # numbers did not change.
+    df["net_load_mw"] = (df["demand_mw"] - df["wind_mw"] - df["solar_mw"]).round(2)
     df["operating_day"] = str(day)
     return df.sort_values(["hour_ending", "dst"], ascending=[True, False])[COLUMNS]
+
+
+def write_history(history: pd.DataFrame, path: Path) -> None:
+    """Write the history with LF endings whatever the platform.
+
+    A run on Windows and a run on the Ubuntu runner have to produce identical
+    bytes. Otherwise every commit rewrites the whole file instead of adding a
+    day to it, and the commit history stops being readable.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    history.to_csv(path, index=False, lineterminator="\n")
 
 
 def load_history(path: Path) -> pd.DataFrame:

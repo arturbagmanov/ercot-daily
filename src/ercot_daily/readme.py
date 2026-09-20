@@ -49,5 +49,7 @@ def replace_block(text: str, block: str) -> str:
 
 def update(path: Path, block: str) -> None:
     path.write_text(
-        replace_block(path.read_text(encoding="utf-8"), block), encoding="utf-8"
+        replace_block(path.read_text(encoding="utf-8"), block),
+        encoding="utf-8",
+        newline="\n",
     )
