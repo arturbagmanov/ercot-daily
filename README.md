@@ -28,7 +28,7 @@ are set. The full five-year analysis is in
 
 ## How it works
 
-A GitHub Action runs twice each morning. It pulls the previous operating day
+A GitHub Action runs several times a day. It pulls the previous operating day
 from ERCOT's Public API, appends it to [`data/daily.csv`](data/daily.csv),
 redraws the chart, and rewrites the recap above. Commits come from
 `github-actions[bot]`.

@@ -2,10 +2,13 @@ name: daily recap
 
 on:
   schedule:
-    # 13:30 and 18:30 UTC: morning in Texas. The second run catches any
-    # report ERCOT had not posted yet at the first.
-    - cron: "30 13 * * *"
-    - cron: "30 18 * * *"
+    # Five attempts, 13:17-21:17 UTC (08:17-16:17 Central in summer).
+    # GitHub's scheduler is best-effort: in the first two days it skipped the
+    # 13:30 slot twice and ran the 18:30 one twenty minutes late. Runs are
+    # idempotent, so once a day is in, later attempts are a 25-second no-op;
+    # the redundancy costs nothing and the odd minute avoids the congested
+    # top and bottom of the hour.
+    - cron: "17 13,15,17,19,21 * * *"
   workflow_dispatch:
     inputs:
       date:
