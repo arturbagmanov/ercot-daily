@@ -6,16 +6,16 @@ Yesterday in ERCOT, updated every morning: demand, net load (demand minus
 wind and solar), and the day-ahead versus real-time price at the Houston hub.
 
 <!-- RECAP:START -->
-**Operating day 2026-10-17** (hours ending, Central Prevailing Time)
+**Operating day 2026-10-18** (hours ending, Central Prevailing Time)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="reports/latest-dark.png">
   <img alt="Yesterday's ERCOT demand, net load and Houston hub prices" src="reports/latest-light.png">
 </picture>
 
-- Demand peaked at **HE18** at 49.6 GW; net load peaked at **HE20** at 46.9 GW.
-- Evening ramp: net load rose **30.1 GW** from HE17 to HE21.
-- HB_HOUSTON: day-ahead averaged \$30.25/MWh, real-time \$35.02/MWh. Widest real-time minus day-ahead spread: **+\$19.73** at HE23.
+- Demand peaked at **HE20** at 52.4 GW; net load peaked at **HE20** at 43.5 GW.
+- Evening ramp: net load rose **22.4 GW** from HE17 to HE21.
+- HB_HOUSTON: day-ahead averaged \$25.09/MWh, real-time \$23.05/MWh. Widest real-time minus day-ahead spread: **−\$14.96** at HE01.
 <!-- RECAP:END -->
 
 ## Why net load
